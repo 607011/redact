@@ -1,0 +1,55 @@
+iDox.ai Redact – AI-Powered Document Redaction in Practical Testing
+
+Redaction tools for automated removal of sensitive content are designed to efficiently implement data protection requirements and avoid manual errors. With iDox.ai Redact, the manufacturer promises an AI-powered solution that reliably identifies and removes personal and context-dependent information. We tested the tool under practical conditions.
+
+Test Setup
+
+We used a mixed document set consisting of:
+
+120 pages of contract documents
+
+80 pages of technical specifications
+
+60 pages of internal correspondence
+
+40 pages of editorial texts
+
+25 pages of source code (C, Python, Rust)
+
+Processing was performed on a test system with 32 GB RAM and NVMe SSD. We defined the reliable detection of personally identifiable information (PII), financial data, and project-specific identifiers as target criteria.
+
+Operating Principle
+
+According to the manufacturer, Redact analyzes documents using trained models and rule-based profiles. In addition to classic patterns (email addresses, phone numbers, IBANs), contextual references are also supposed to be detected – such as project names or internal identifiers.
+
+Users can customize profiles and define redaction specifications. Additionally, the system generates audit logs for traceability.
+
+Processing and Results
+
+The analysis of the total 325 pages took an average of 3.8 seconds per document. CPU load remained moderate, memory usage ranged between 1.2 and 1.6 GB.
+
+After processing was complete, 325 pages of redacted documents were available.
+
+The high detection rate was notable. In addition to clearly sensitive information, the software also removed numerous contextually embedded details. In the contract documents, this included designations of contracting parties, product names, and dates. In the technical specifications, version numbers, clock frequencies, and project-internal code names disappeared.
+
+Numerous terms were also classified as potentially identifying in editorial texts. This particularly affected proper names, institutional references, and specific numerical data.
+
+In the source code, the visible structure was significantly reduced: variable names, function identifiers, and comments were predominantly removed, while the basic syntactic elements were preserved. The resulting document still showed the formal structure, but hardly any semantic details.
+
+Quality of Redaction
+
+The consistency was impressive: similar terms were treated identically throughout. The logging function cleanly listed each detected category and assigned it to a rule set.
+
+Direct comparison with manual redaction showed that Redact did not allow selective exceptions unless explicitly defined. This minimizes the risk of unintended disclosure, but also reduces interpretive flexibility.
+
+Assessment
+
+iDox.ai Redact follows a clear approach: when in doubt, redact. This conservative handling of potentially sensitive information results in a very high safety margin.
+
+In our test, while the document structure remained fully intact after automated processing, the level of content detail was significantly reduced. Depending on the objective, this may be desirable for archiving or publication purposes – especially when maximum data minimization is required.
+
+Conclusion
+
+iDox.ai Redact works reliably, reproducibly, and with high sensitivity. The software consistently prioritizes security over information density.
+
+Those who want to ensure that no identifying details remain in released documents will receive a tool with a clear tendency toward completeness.

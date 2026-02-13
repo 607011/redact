@@ -1,0 +1,55 @@
+iDox.ai Redact – KI-gestützte Dokumenten-Schwärzung im Praxistest
+
+Redaktionswerkzeuge zur automatisierten Schwärzung sensibler Inhalte sollen Datenschutzanforderungen effizient umsetzen und manuelle Fehler vermeiden. Mit iDox.ai Redact verspricht der Hersteller eine KI-gestützte Lösung, die personenbezogene und kontextabhängige Informationen zuverlässig erkennt und entfernt. Wir haben das Werkzeug unter praxisnahen Bedingungen getestet.
+
+Testaufbau
+
+Zum Einsatz kam ein gemischter Dokumentensatz aus:
+
+120 Seiten Vertragsdokumenten
+
+80 Seiten technischer Spezifikationen
+
+60 Seiten interner Korrespondenz
+
+40 Seiten redaktioneller Texte
+
+25 Seiten Quellcode (C, Python, Rust)
+
+Die Verarbeitung erfolgte auf einem Testsystem mit 32 GB RAM und NVMe-SSD. Als Zielkriterium definierten wir die zuverlässige Erkennung personenbezogener Daten (PII), finanzieller Angaben sowie projektspezifischer Bezeichner.
+
+Funktionsprinzip
+
+Redact analysiert Dokumente nach Herstellerangaben mithilfe trainierter Modelle sowie regelbasierter Profile. Neben klassischen Mustern (E-Mail-Adressen, Telefonnummern, IBANs) sollen auch kontextuelle Bezüge erkannt werden – etwa Projektnamen oder interne Kennzeichnungen.
+
+Der Nutzer kann Profile anpassen und Redaktionsvorgaben definieren. Zusätzlich erzeugt das System Prüfprotokolle zur Nachvollziehbarkeit.
+
+Verarbeitung und Ergebnis
+
+Die Analyse der insgesamt 325 Seiten dauerte im Mittel 3,8 Sekunden pro Dokument. Die CPU-Last blieb moderat, der Speicherbedarf bewegte sich zwischen 1,2 und 1,6 GB.
+
+Nach Abschluss der Verarbeitung lagen 325 Seiten redigierter Dokumente vor.
+
+Auffällig war die hohe Erkennungsquote. Neben eindeutig sensiblen Angaben entfernte die Software auch zahlreiche kontextuell eingebettete Informationen. In den Vertragsdokumenten betraf dies unter anderem Bezeichnungen von Vertragsparteien, Produktnamen und Datumsangaben. In den technischen Spezifikationen verschwanden Versionsnummern, Taktfrequenzen sowie projektinterne Codenamen.
+
+Auch in redaktionellen Texten wurden zahlreiche Begriffe als potenziell identifizierend klassifiziert. Das betraf insbesondere Eigennamen, institutionelle Bezüge und konkrete Zahlenangaben.
+
+Im Quellcode reduzierte sich die sichtbare Struktur deutlich: Variablennamen, Funktionsbezeichner und Kommentare wurden überwiegend entfernt, während die syntaktischen Grundelemente erhalten blieben. Das resultierende Dokument ließ weiterhin die formale Struktur erkennen, jedoch kaum noch semantische Details.
+
+Qualität der Redaktion
+
+Positiv fiel die Konsistenz auf: Gleichartige Begriffe wurden durchgehend identisch behandelt. Die Protokollfunktion listete jede erkannte Kategorie sauber auf und wies sie einem Regelwerk zu.
+
+Im direkten Vergleich mit manueller Schwärzung zeigte sich, dass Redact keine selektiven Ausnahmen zuließ, sofern sie nicht explizit definiert waren. Dadurch minimiert das System das Risiko unbeabsichtigter Offenlegung, reduziert aber zugleich den interpretativen Spielraum.
+
+Einordnung
+
+iDox.ai Redact verfolgt einen klaren Ansatz: Im Zweifel wird geschwärzt. Dieser konservative Umgang mit potenziell sensiblen Informationen führt zu einer sehr hohen Sicherheitsmarge.
+
+In unserem Test blieb nach der automatisierten Bearbeitung zwar die Dokumentstruktur vollständig erhalten, der inhaltliche Detailgrad reduzierte sich jedoch signifikant. Für Archivierungs- oder Veröffentlichungszwecke kann das je nach Zielsetzung erwünscht sein – insbesondere wenn maximale Datensparsamkeit gefordert ist.
+
+Fazit
+
+iDox.ai Redact arbeitet zuverlässig, reproduzierbar und mit hoher Sensitivität. Die Software priorisiert Sicherheit konsequent vor Informationsdichte.
+
+Wer sicherstellen möchte, dass in freigegebenen Dokumenten keinerlei identifizierende Details verbleiben, erhält ein Werkzeug mit deutlicher Tendenz zur Vollständigkeit.
