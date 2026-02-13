@@ -11,41 +11,41 @@ class RedactionMode(Enum):
     SINGLE = "single"
 
 
-def redact_segment(result: list, start: int, end: int, redact_char: str):
+def redact_segment(result: list, start: int, end: int, redact_char: str) -> None:
     for i in range(start, end):
-        if not result[i].isspace():
+        if result[i].isalpha():
             result[i] = redact_char
 
 
-def score_token(token):
+def get_token_importance(token) -> float:
     if token.ent_type_:
         return 1.0
     elif token.pos_ in ["NUM", "GPE", "LOC", "ORG", "PERSON"]:
         return 0.9
     elif token.pos_ in ["NOUN", "PROPN"]:
-        return 0.75
+        return 0.7
     elif token.pos_ in ["VERB", "ADJ", "ADV"]:
-        return 0.6
+        return 0.4
     else:
-        return 0.1
+        return 0.0
 
 
 def redact(text: str, redaction_mode: list[RedactionMode], level: int = 70) -> str:
-    threshold = level / 100.0
+    threshold = (100 - level) / 100.0
     doc = nlp(text)
     result = list(text)
     if RedactionMode.PHRASE in redaction_mode:
         # redact entire noun phrases based on the specified level
         for chunk in doc.noun_chunks:
-            importance = sum(score_token(tok) for tok in chunk) / len(chunk)
-            if importance <= threshold:
+            importance = sum(get_token_importance(tok) for tok in chunk) / len(chunk)
+            if importance >= threshold:
                 redact_segment(result, chunk.start_char, chunk.end_char, "█")
     if RedactionMode.SINGLE in redaction_mode:
         # redact individual tokens based on their importance and the specified level
         for token in doc:
-            importance = score_token(token)
-            if importance <= threshold:
-                redact_segment(result, token.idx, token.idx + len(token), "█")
+            importance = get_token_importance(token)
+            if importance >= threshold:
+                redact_segment(result, token.idx, token.idx + len(token), "▒")
     return "".join(result)
 
 
