@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import random
-from typing import Set
-import spacy
 import sys
 import argparse
 from enum import Enum
@@ -68,6 +66,7 @@ def main() -> None:
     else:
         input_text = sys.stdin.read()
     
+    import spacy
     nlp = spacy.load(args.model)
     redacted = redact(input_text, args.level, RedactionMode(args.mode))
     print(redacted)
