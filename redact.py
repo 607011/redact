@@ -37,7 +37,10 @@ def redact(text: str, redaction_mode: list[RedactionMode], level: int = 70) -> s
     if RedactionMode.PHRASE in redaction_mode:
         # redact entire noun phrases based on the specified level
         for chunk in doc.noun_chunks:
-            importance = sum(get_token_importance(tok) for tok in chunk) / len(chunk)
+            tokens = [tok for tok in chunk if not tok.is_stop]
+            if not tokens:
+                continue
+            importance = sum(get_token_importance(tok) for tok in tokens) / len(tokens)
             if importance >= threshold:
                 redact_segment(result, chunk.start_char, chunk.end_char, "█")
     if RedactionMode.SINGLE in redaction_mode:
