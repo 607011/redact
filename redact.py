@@ -12,7 +12,6 @@ ENTITY_LABELS: Set[str] = {
     "PERSON", "ORG", "GPE", "LOC", "NUM", "PROPN", "MISC"
 }
 
-nlp = spacy.load("de_core_news_md")
 
 def redact_segment(result: list, start: int, end: int, redact_char: str):
     for i in range(start, end):
@@ -29,9 +28,11 @@ def redact(text: str, level: int = 70) -> str:
     return "".join(result)
 
 def main() -> None:
+    global nlp
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', type=str, help='Input file path')
     parser.add_argument('-l', '--level', type=int, default=100, help='Redaction level')
+    parser.add_argument('-m', '--model', type=str, default="de_core_news_md", help='Spacy model to use')
     args = parser.parse_args()
     
     if args.input:
@@ -40,6 +41,7 @@ def main() -> None:
     else:
         input_text = sys.stdin.read()
     
+    nlp = spacy.load(args.model)
     redacted = redact(input_text, args.level)
     print(redacted)
 
