@@ -25,7 +25,8 @@ pipenv run python -m spacy download en_core_web_sm
 
 ```bash
 pipenv run ./redact.py \
-  -i test.txt \
-  --level 80 \
+  -i test-en.txt \
+  --level 70 \
+  --mode single \
   --model en_core_web_sm
 ```
