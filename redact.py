@@ -57,15 +57,15 @@ def main() -> None:
     parser.add_argument("-o", "--output", type=str, help="Output file path")
     parser.add_argument("-l", "--level", type=int, default=80, help="Redaction level")
     parser.add_argument(
-        "--mode",
-        type=str,
-        nargs="+",
-        default=[RedactionMode.PHRASE.value],
-        choices=[mode.value for mode in RedactionMode],
-        help="Redaction mode(s)",
+        "-m", "--model", type=str, default="de_core_news_md", help="Spacy model to use"
     )
     parser.add_argument(
-        "-m", "--model", type=str, default="de_core_news_md", help="Spacy model to use"
+        "--mode",
+        type=RedactionMode,
+        nargs="+",
+        default=[RedactionMode.PHRASE],
+        choices=list(RedactionMode),
+        help="Redaction mode(s)",
     )
     args = parser.parse_args()
 
@@ -79,7 +79,7 @@ def main() -> None:
 
     nlp = spacy.load(args.model, disable=["lemmatizer"])
     redacted = redact(
-        input_text, [RedactionMode(mode) for mode in args.mode], args.level
+        input_text, args.mode, args.level
     )
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:
