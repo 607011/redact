@@ -12,9 +12,7 @@ class RedactionMode(Enum):
 
 
 def redact_segment(result: list, start: int, end: int, redact_char: str) -> None:
-    for i in range(start, end):
-        if result[i].isalpha():
-            result[i] = redact_char
+    result[start:end] = [redact_char if c.isalpha() else c for c in result[start:end]]
 
 
 def get_token_importance(token) -> float:
