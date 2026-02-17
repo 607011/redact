@@ -1,0 +1,5 @@
+services:
+  webservice:
+    build: backend
+    ports:
+      - "8000:8000"

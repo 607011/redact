@@ -4,29 +4,16 @@
 
 ## Prerequisites
 
-- Python 3.11 or newer
-- Pipenv
+- Docker + Docker Compose
 
-## Prepare
-
-Install modules:
+## build
 
 ```bash
-pipenv install
-```
-
-Download language files, e.g. a basic model for English
-
-```bash
-pipenv run python -m spacy download en_core_web_sm
+docker compose build
 ```
 
 ## Run
 
 ```bash
-pipenv run ./redact.py \
-  -i test-en.txt \
-  --level 70 \
-  --mode single phrase \
-  --model en_core_web_sm
+docker compose up
 ```

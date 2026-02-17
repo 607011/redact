@@ -11,14 +11,18 @@ class RedactionMode(Enum):
     SINGLE = "single"
 
 
-def redact_segment(result: list, start: int, end: int, redact_char: str) -> None:
-    result[start:end] = [redact_char if c.isalpha() else c for c in result[start:end]]
+def redact_segment(
+    result: list, start_idx: int, end_idx: int, redact_char: str = "█"
+) -> None:
+    result[start_idx:end_idx] = [
+        redact_char if not c.isspace() else c for c in result[start_idx:end_idx]
+    ]
 
 
 def get_token_importance(token) -> float:
     if token.ent_type_:
         return 1.0
-    elif token.pos_ in ["NUM", "GPE", "LOC", "ORG", "PERSON"]:
+    elif token.pos_ == "NUM":
         return 0.9
     elif token.pos_ in ["NOUN", "PROPN"]:
         return 0.7
@@ -39,14 +43,17 @@ def redact(text: str, redaction_mode: list[RedactionMode], level: int = 70) -> s
             if not tokens:
                 continue
             importance = sum(get_token_importance(tok) for tok in tokens) / len(tokens)
-            if importance >= threshold:
-                redact_segment(result, chunk.start_char, chunk.end_char, "█")
+            if importance < threshold:
+                continue
+            redact_segment(result, chunk.start_char, chunk.end_char)
     if RedactionMode.SINGLE in redaction_mode:
         # redact individual tokens based on their importance and the specified level
         for token in doc:
             importance = get_token_importance(token)
-            if importance >= threshold:
-                redact_segment(result, token.idx, token.idx + len(token), "▒")
+            print(f"""{token.text} {token.ent_type_}""")
+            if importance < threshold:
+                continue
+            redact_segment(result, token.idx, token.idx + len(token), "▒")
     return "".join(result)
 
 
@@ -68,6 +75,7 @@ def main() -> None:
         help="Redaction mode(s)",
     )
     args = parser.parse_args()
+    print(f"Using model: {args.model}")
 
     if args.input:
         with open(args.input, "r", encoding="utf-8") as f:
@@ -75,12 +83,12 @@ def main() -> None:
     else:
         input_text = sys.stdin.read()
 
+    print("Loading spaCy ...")
     import spacy
 
-    nlp = spacy.load(args.model, disable=["lemmatizer"])
-    redacted = redact(
-        input_text, args.mode, args.level
-    )
+    print("Loading model ...")
+    nlp = spacy.load(args.model, disable=["lemmatizer", "attribute_ruler"])
+    redacted = redact(input_text, args.mode, args.level)
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:
             f.write(redacted)

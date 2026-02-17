@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redac’t</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            gap: 0;
+        }
+
+        .container {
+            width: 50%;
+            padding: 20px;
+            border: 1px solid #ddd;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        footer {
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const editableContainer = document.querySelector('.container[contenteditable="true"]');
+            const displayContainer = document.querySelector('.container:not([contenteditable])');
+            editableContainer.addEventListener('input', () => {
+                fetch('http://127.0.0.1:8000/redact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: editableContainer.innerHTML.replace(/<br>/g, '\n'),
+                        modes: [
+                            {
+                                type: 'phrase',
+                                level: 76,
+                            },
+                        ]
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        displayContainer.innerHTML = data.redacted_text.replace(/\n/g, '<br>');
+                    })
+                    .catch(error => console.error('Error:', error));
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <header>
+        <h1>Redac’t</h1>
+    </header>
+
+    <main>
+        <div class="container" contenteditable="true"></div>
+        <div class="container"></div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Redac’t. All rights reserved.</p>
+    </footer>
+</body>
+
+</html>
