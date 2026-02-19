@@ -8,16 +8,19 @@
 
 - Docker + Docker Compose
 
-## build
+## Build & Run
+
+Check out repo:
 
 ```bash
-docker compose build
+git clone https://github.com/607011/redact.git
+cd redact
 ```
 
-## Run
+Build and run Docker images:
 
 ```bash
-docker compose up
+docker compose --profile dev up --build
 ```
 
 Open [127.0.0.1:8880](http://127.0.0.1:8880/) in your favorite browser.
