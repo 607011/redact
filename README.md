@@ -1,8 +1,8 @@
-# redac’t
+# Redac’t
 
 **Linguistically proven redactor for plain text files**
 
-<img width="1093" height="903" alt="grafik" src="https://github.com/user-attachments/assets/2dfae99c-5514-4907-aaac-1b4c3b30fb1e" />
+<img width="1057" height="657" alt="grafik" src="https://github.com/user-attachments/assets/66658ef5-1f0a-4c1d-a7d9-26b9243de51a" />
 
 
 ## Prerequisites
