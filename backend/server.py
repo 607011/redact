@@ -116,23 +116,35 @@ def analyze(text: str, redaction_modes: list[ModeConfig]) -> str:
             result.append([token.idx, token.idx + len(token), importance, 'S'])
 
     if result:
-        # Remove overlapping segments, keeping the one with higher importance
-        # Since we sorted by importance descending for the same start index,
-        # the first one we encounter is the one to keep.
-        merged = [result[0]]
-        for current in result[1:]:
-            last = merged[-1]
-            # Check for overlap: current segment starts before the last one ends
-            if current[0] < last[1]:
-                # If the current segment is more important and doesn't just start within the last one,
-                # it might be a candidate to replace or merge, but our primary sort handles this.
-                # We simply skip overlapping segments that start later but are less or equally important.
-                # If an inner segment is more important, it should have been sorted first.
-                # This logic keeps the first-encountered (most important or longest) segment in an overlapping group.
-                pass
-            else:
-                # No overlap, add the current segment
-                merged.append(current)
+        # Sort by start index, then by importance descending.
+        # This ensures that for overlapping segments, we process the one starting first.
+        # If they start at the same index, the more important one comes first.
+        result.sort(key=lambda x: (x[0], -x[2]))
+
+        # Remove overlapping segments, keeping the one with higher importance.
+        # If a less important segment is fully contained within a more important one, it's removed.
+        merged = []
+        if result:
+            merged.append(result[0])
+            for current in result[1:]:
+                last = merged[-1]
+                # Check for overlap
+                if current[0] < last[1]:
+                    # Overlap exists.
+                    # If current is fully contained in last, skip it.
+                    if current[1] <= last[1]:
+                        continue
+                    # Partial overlap. Decide which to keep.
+                    # If last is more important, adjust its end if current extends it.
+                    if last[2] >= current[2]:
+                        last[1] = max(last[1], current[1])
+                    else:
+                        # Current is more important, replace last.
+                        # This case is less likely with the current sorting, but good for robustness.
+                        merged[-1] = current
+                else:
+                    # No overlap, add current segment.
+                    merged.append(current)
         
         result = merged
         # Final sort by start index
