@@ -1,6 +1,6 @@
 # Redac’t
 
-**Linguistically proven redactor for plain text files with web frontend plus a Python backend using the NLP framework spacy.io**
+**Linguistically proven redactor for plain text files with a web frontend plus a Python backend using the NLP framework spacy.io**
 
 <img width="985" height="617" alt="grafik" src="https://github.com/user-attachments/assets/960113f4-6612-43e2-a78d-dc9a6ada300b" />
 
