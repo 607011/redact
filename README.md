@@ -19,3 +19,5 @@ docker compose build
 ```bash
 docker compose up
 ```
+
+Open [127.0.0.1:8880](http://127.0.0.1:8880/) in your favorite browser.
