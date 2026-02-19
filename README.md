@@ -1,4 +1,4 @@
-# redac’t
+# Redac’t
 
 **Linguistically proven redactor for plain text files**
 
