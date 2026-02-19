@@ -2,8 +2,7 @@
 
 **Linguistically proven redactor for plain text files**
 
-<img width="1057" height="657" alt="grafik" src="https://github.com/user-attachments/assets/66658ef5-1f0a-4c1d-a7d9-26b9243de51a" />
-
+<img width="985" height="617" alt="grafik" src="https://github.com/user-attachments/assets/960113f4-6612-43e2-a78d-dc9a6ada300b" />
 
 ## Prerequisites
 
