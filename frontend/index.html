@@ -4,8 +4,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A tool to analyze and redact text by highlighting important words and phrases.">
+    <meta name="keywords" content="redact, text analysis, privacy, redaction tool, text highlighter">
+    <meta name="author" content="Redac't">
+    <meta name="robots" content="index, follow">
     <title>Redac’t</title>
     <style>
+        @font-face {
+            font-family: 'Source Sans Pro';
+            src: url('static/fonts/SourceSansPro-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'Source Sans Pro';
+            src: url('static/fonts/SourceSansPro-Bold.ttf') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'Source Code Pro';
+            src: url('static/fonts/SourceCodePro-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'Source Code Pro';
+            src: url('static/fonts/SourceCodePro-Bold.ttf') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+            font-display: swap;
+        }
         * {
             margin: 0;
             padding: 0;
@@ -15,68 +50,96 @@
         body {
             display: flex;
             flex-direction: column;
-            min-height: 100vh;
-            font-family: Arial, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Source Sans Pro', Arial, sans-serif;
+        }
+
+        h1 {
+            font-size: 24px;
         }
 
         header {
-            background-color: #333;
+            background-color: #14315B;
             color: white;
-            padding: 20px;
+            padding: 10px;
             text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         main {
             flex: 1;
             display: flex;
             gap: 0;
+            overflow-y: auto;
         }
 
         .container {
             width: 50%;
-            padding: 20px;
+            padding: 10px;
             border: 1px solid #ddd;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Source Code Pro', 'Courier New', Courier, monospace;
+            min-height: 100%;
+            height: fit-content;
+        }
+
+        .container span {
+            border-radius: 3px;
+            transition: background-color 0.2s ease;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+        }
+
+        .container[contenteditable="true"]:focus {
+            outline: none;
+            border-color: #333;
+            background-color: #fafafa;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 15px;
         }
 
         footer {
-            background-color: #333;
+            font-size: smaller;
+            background-color: #14315B;
             color: white;
-            padding: 20px;
+            padding: 10px;
             text-align: center;
         }
     </style>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const editableContainer = document.querySelector('.container[contenteditable="true"]');
-            const displayContainer = document.querySelector('.container:not([contenteditable])');
-            editableContainer.addEventListener('input', () => {
-                fetch('http://127.0.0.1:8000/redact', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        text: editableContainer.innerHTML.replace(/<br>/g, '\n'),
-                        modes: [
-                            {
-                                type: 'phrase',
-                                level: 76,
-                            },
-                        ]
-                    })
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        displayContainer.innerHTML = data.redacted_text.replace(/\n/g, '<br>');
-                    })
-                    .catch(error => console.error('Error:', error));
-            });
-        });
-    </script>
 </head>
 
 <body>
     <header>
         <h1>Redac’t</h1>
+        <div class="controls">
+            <label for="single-level">Word</label>
+            <input type="range" id="single-level" min="0" max="4" step="1" list="steplist">
+            <label for="phrase-level">Phrase</label>
+            <input type="range" id="phrase-level" min="0" max="4" step="1" list="steplist">
+            <datalist id="steplist">
+                <option value="0"></option>
+                <option value="40"></option>
+                <option value="70"></option>
+                <option value="90"></option>
+                <option value="100"></option>
+            </datalist>
+            <button id="download-redacted" title="Download Redacted Text"
+                style="background: none; border: none; cursor: pointer; color: white; vertical-align: middle; padding: 0 10px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+            </button>
+        </div>
     </header>
 
     <main>
@@ -85,8 +148,125 @@
     </main>
 
     <footer>
-        <p>&copy; 2024 Redac’t. All rights reserved.</p>
+        <p>&copy; 2026 Redac’t. All rights reserved.</p>
     </footer>
 </body>
+
+<script>
+    (function (window) {
+        // container for DOM elements of interest
+        const el = {};
+        const API_VERSION = "v1";
+        const ANALYZE_ENDPOINT = `/api/${API_VERSION}/analyze`;
+        const REDACT_ENDPOINT = `/api/${API_VERSION}/redact`;
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function downloadRedactedText() {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = el.displayContainer.innerHTML.replace(/<br\s*\/?>/gi, '\n');
+            const spans = tempDiv.querySelectorAll('span');
+            spans.forEach(span => {
+                const blockText = span.innerText.replace(/[^\n]/g, '█');
+                span.innerText = blockText;
+            });
+            const finalContent = tempDiv.innerText;
+            const blob = new Blob([finalContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `geschwaerzt_${new Date().toISOString().slice(0, 10)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function analyzeText() {
+            if (!el.editableContainer || el.editableContainer.innerText.length === 0)
+                return;
+            const modes = [];
+            const datalistOptions = Array.from(document.querySelectorAll('#steplist option')).map(opt => parseInt(opt.value));
+            const phraseLevel = parseInt(document.getElementById('phrase-level').value);
+            const phraseValue = datalistOptions[phraseLevel];
+            if (phraseValue > 0) {
+                modes.push({
+                    type: 'phrase',
+                    level: phraseValue,
+                });
+            }
+            const singleLevel = parseInt(document.getElementById('single-level').value);
+            const singleValue = datalistOptions[singleLevel];
+            if (singleValue > 0) {
+                modes.push({
+                    type: 'single',
+                    level: singleValue,
+                });
+            }
+            const originalText = el.editableContainer.innerText.replace(/\r\n/g, '\n');
+            fetch(ANALYZE_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: originalText,
+                    modes: modes
+                })
+            })
+                .then(response => response.json())
+                // .then(data => {
+                //     // displayContainer.innerHTML = data.redacted_text.replace(/\n/g, '<br>');
+
+                // })
+                .then(data => {
+                    let html = "";
+                    let cursor = 0;
+                    for (const [start, end, importance] of data.analysis) {
+                        if (start > cursor) {
+                            html += escapeHtml(originalText.slice(cursor, start));
+                        }
+                        const r = Math.round(255 * importance);
+                        const g = Math.round(255 * (1 - importance));
+                        html += `<span style="background-color: rgba(${r}, ${g}, 0.3, 0.8);">${escapeHtml(originalText.slice(start, end))}</span>`;
+                        cursor = end;
+                    }
+                    console.debug(cursor, originalText.length, originalText.slice(cursor));
+                    if (cursor < originalText.length) {
+                        html += escapeHtml(originalText.slice(cursor));
+                    }
+
+                    el.displayContainer.innerHTML = html.replace(/\n/g, "<br>");
+                })
+                .catch(error => console.error("Error:", error));
+        }
+
+        function onInput() {
+            analyzeText();
+        }
+
+        function onSliderChange() {
+            analyzeText();
+        }
+
+        function setup() {
+            el.displayContainer = document.querySelector('.container:not([contenteditable])');
+            el.editableContainer = document.querySelector('.container[contenteditable="true"]');
+            el.editableContainer.addEventListener('input', onInput);
+            el.phraseSlider = document.getElementById('phrase-level');
+            el.phraseSlider.addEventListener('input', onSliderChange);
+            el.singleSlider = document.getElementById('single-level');
+            el.singleSlider.addEventListener('input', onSliderChange);
+            document.getElementById('download-redacted').addEventListener('click', downloadRedactedText);
+            analyzeText();
+        }
+
+        document.addEventListener('DOMContentLoaded', setup);
+    })(window);
+</script>
 
 </html>

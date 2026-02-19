@@ -2,4 +2,30 @@ services:
   webservice:
     build: backend
     ports:
-      - "8000:8000"
+      - "13370:13370"
+    restart: always
+    networks:
+      - backend
+  redact-frontend-dev:
+    profiles: ["dev"]
+    container_name: redact-frontend-dev
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NGINX_CONFIG_PATH: ./dev
+    ports:
+      - "8880:80"
+    restart: always
+    networks:
+      - backend
+    develop:
+      watch:
+        - action: rebuild
+          path: ./dev/
+        - action: rebuild
+          path: ./frontend/
+
+networks:
+  backend:
+    driver: bridge

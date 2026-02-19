@@ -89,6 +89,57 @@ def redact(text: str, redaction_modes: list[ModeConfig]) -> str:
 
     return "".join(result)
 
+def analyze(text: str, redaction_modes: list[ModeConfig]) -> str:
+    """Analyze importance of phrases and words based on specified modes and level."""
+    threshold = {mode.type: (100 - mode.level) / 100.0 for mode in redaction_modes}
+    doc = nlp(text)
+
+    result = []
+
+    if any(mode.type == RedactionMode.PHRASE for mode in redaction_modes):
+        # redact entire noun phrases based on the specified level
+        for chunk in doc.noun_chunks:
+            tokens = [tok for tok in chunk if not tok.is_stop]
+            if not tokens:
+                continue
+            importance = sum(get_token_importance(tok) for tok in tokens) / len(tokens)
+            if importance < threshold[RedactionMode.PHRASE]:
+                continue
+            result.append([chunk.start_char, chunk.end_char, importance, 'P'])
+
+    if any(mode.type == RedactionMode.SINGLE for mode in redaction_modes):
+        # redact individual tokens based on their importance and the specified level
+        for token in doc:
+            importance = get_token_importance(token)
+            if importance < threshold[RedactionMode.SINGLE]:
+                continue
+            result.append([token.idx, token.idx + len(token), importance, 'S'])
+
+    if result:
+        # Remove overlapping segments, keeping the one with higher importance
+        # Since we sorted by importance descending for the same start index,
+        # the first one we encounter is the one to keep.
+        merged = [result[0]]
+        for current in result[1:]:
+            last = merged[-1]
+            # Check for overlap: current segment starts before the last one ends
+            if current[0] < last[1]:
+                # If the current segment is more important and doesn't just start within the last one,
+                # it might be a candidate to replace or merge, but our primary sort handles this.
+                # We simply skip overlapping segments that start later but are less or equally important.
+                # If an inner segment is more important, it should have been sorted first.
+                # This logic keeps the first-encountered (most important or longest) segment in an overlapping group.
+                pass
+            else:
+                # No overlap, add the current segment
+                merged.append(current)
+        
+        result = merged
+        # Final sort by start index
+        result.sort(key=lambda x: x[0])
+
+    return result
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -118,11 +169,23 @@ async def root():
         "service": "Text Redaction API",
         "version": "1.0.0",
         "endpoints": {
+            "POST /analyze": "Analyze text importance without redaction",
             "POST /redact": "Redact text with specified parameters",
             "GET /health": "Check API health status",
+            "GET /models": "List available spaCy models",
         },
     }
 
+@app.options("/health")
+async def health_options():
+    """Handle CORS preflight requests."""
+    return Response(
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+        }
+    )
 
 @app.get("/health")
 async def health():
@@ -131,6 +194,20 @@ async def health():
         raise HTTPException(status_code=503, detail="Model not loaded")
     return {"status": "healthy", "model_loaded": True}
 
+@app.options("/models")
+async def models_options():
+    """Handle CORS preflight requests."""
+    return Response(
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+        }
+    )
+
+@app.get("/models")
+async def get_models():
+    return {"models": ["de_core_news_md"]}
 
 @app.options("/redact")
 async def redact_options():
@@ -138,10 +215,45 @@ async def redact_options():
     return Response(
         headers={
             "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type",
         }
     )
+
+@app.post("/analyze")
+async def analyze_text(request: RedactionRequest):
+    """
+    Analyze importance of phrases and words in the provided text.
+
+    - **text**: The text to analyze
+    - **level**: Analysis aggressiveness (0-100, higher = more analysis)
+    - **mode**: Analysis strategy (phrase, single, or both)
+    - **model**: spaCy model to use (default: de_core_news_md)
+    """
+    if nlp is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+
+    if not request.text:
+        raise HTTPException(status_code=400, detail="Text must not be empty")
+
+    try:
+        analysis_result = analyze(request.text, request.modes)
+        return JSONResponse(
+            content={
+                "analysis": analysis_result,
+                "modes": [
+                    {"type": mode.type, "level": mode.level} for mode in request.modes
+                ],
+                "model_used": request.model,
+            },
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type",
+            },
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 
 @app.post("/redact")
@@ -158,13 +270,12 @@ async def redact_text(request: RedactionRequest):
         raise HTTPException(status_code=503, detail="Model not loaded")
 
     if not request.text:
-        raise HTTPException(status_code=400, detail="Text cannot be empty")
+        raise HTTPException(status_code=400, detail="Text must not be empty")
 
     try:
         redacted_text = redact(request.text, request.modes)
         return JSONResponse(
             content={
-                "original_text": request.text,
                 "redacted_text": redacted_text,
                 "modes": [
                     {"type": mode.type, "level": mode.level} for mode in request.modes
@@ -173,15 +284,15 @@ async def redact_text(request: RedactionRequest):
             },
             headers={
                 "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
                 "Access-Control-Allow-Headers": "Content-Type",
             },
         )
     except Exception as e:
+        print(f"Error during redaction: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Redaction failed: {str(e)}")
 
 
 if __name__ == "__main__":
     import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=13370)
