@@ -41,6 +41,7 @@
             font-style: normal;
             font-display: swap;
         }
+
         * {
             margin: 0;
             padding: 0;
@@ -76,26 +77,51 @@
             overflow-y: auto;
         }
 
+        #editor-wrapper {
+            position: relative;
+            flex: 1;
+            height: 100%;
+            overflow-y: auto;
+            background-color: white;
+        }
+
         .container {
-            width: 50%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            font-family: 'Source Code Pro', 'Courier New', Courier, monospace;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
             min-height: 100%;
-            height: fit-content;
+            padding: 15px;
+            margin: 0;
+            font-family: 'Source Code Pro', monospace;
+            font-size: 16px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            border: none;
         }
 
-        .container span {
-            border-radius: 3px;
-            transition: background-color 0.2s ease;
-            box-decoration-break: clone;
-            -webkit-box-decoration-break: clone;
-        }
-
-        .container[contenteditable="true"]:focus {
+        #editor {
+            z-index: 2;
+            color: black;
+            background: transparent;
+            /* Wichtig: Man sieht den Highlighter durch */
+            caret-color: black;
+            /* Cursor sichtbar halten */
             outline: none;
-            border-color: #333;
-            background-color: #fafafa;
+        }
+
+        #highlighter {
+            z-index: 1;
+            color: transparent;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        #highlighter span {
+            color: transparent;
+            border-radius: 2px;
+            transition: background-color 0.3s ease, opacity 0.3s ease;
         }
 
         .controls {
@@ -143,8 +169,10 @@
     </header>
 
     <main>
-        <div class="container" contenteditable="true"></div>
-        <div class="container"></div>
+        <div id="editor-wrapper">
+            <div id="highlighter" class="container"></div>
+            <div id="editor" class="container" contenteditable="true" spellcheck="false"></div>
+        </div>
     </main>
 
     <footer>
@@ -160,6 +188,8 @@
         const ANALYZE_ENDPOINT = `/api/${API_VERSION}/analyze`;
         const REDACT_ENDPOINT = `/api/${API_VERSION}/redact`;
 
+        let analysisTimeout;
+
         function escapeHtml(text) {
             return text
                 .replace(/&/g, '&amp;')
@@ -168,28 +198,49 @@
                 .replace(/"/g, '&quot;');
         }
 
-        function downloadRedactedText() {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = el.displayContainer.innerHTML.replace(/<br\s*\/?>/gi, '\n');
-            const spans = tempDiv.querySelectorAll('span');
-            spans.forEach(span => {
-                const blockText = span.innerText.replace(/[^\n]/g, '█');
-                span.innerText = blockText;
-            });
-            const finalContent = tempDiv.innerText;
-            const blob = new Blob([finalContent], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `geschwaerzt_${new Date().toISOString().slice(0, 10)}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+        async function downloadRedactedText() {
+            const editor = document.getElementById('editor');
+            const text = editor.innerText;
+            if (!text.trim())
+                return;
+            const datalistOptions = Array.from(document.querySelectorAll('#steplist option')).map(opt => parseInt(opt.value));
+            const phraseValue = datalistOptions[document.getElementById('phrase-level').value];
+            const singleValue = datalistOptions[document.getElementById('single-level').value];
+            const modes = [];
+            if (phraseValue > 0)
+                modes.push({ type: 'phrase', level: phraseValue });
+            if (singleValue > 0)
+                modes.push({ type: 'single', level: singleValue });
+            try {
+                const response = await fetch('/api/v1/redact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        modes: modes
+                    })
+                });
+                const data = await response.json();
+                const blob = new Blob([data.redacted_text], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                a.href = url;
+                a.download = `redacted_final_${timestamp}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+            }
+            catch (error) {
+                console.error("Download failed:", error);
+                alert("Fehler beim Erstellen der geschwärzten Datei.");
+            }
         }
 
         function analyzeText() {
-            if (!el.editableContainer || el.editableContainer.innerText.length === 0)
+            if (!el.editor || el.editor.innerText.length === 0)
                 return;
             const modes = [];
             const datalistOptions = Array.from(document.querySelectorAll('#steplist option')).map(opt => parseInt(opt.value));
@@ -209,7 +260,7 @@
                     level: singleValue,
                 });
             }
-            const originalText = el.editableContainer.innerText.replace(/\r\n/g, '\n');
+            const originalText = el.editor.innerText.replace(/\r\n/g, '\n');
             fetch(ANALYZE_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -219,10 +270,6 @@
                 })
             })
                 .then(response => response.json())
-                // .then(data => {
-                //     // displayContainer.innerHTML = data.redacted_text.replace(/\n/g, '<br>');
-
-                // })
                 .then(data => {
                     let html = "";
                     let cursor = 0;
@@ -232,21 +279,26 @@
                         }
                         const r = Math.round(255 * importance);
                         const g = Math.round(255 * (1 - importance));
-                        html += `<span style="background-color: rgba(${r}, ${g}, 0.3, 0.8);">${escapeHtml(originalText.slice(start, end))}</span>`;
+                        html += `<span style="background-color: rgba(${r}, ${g}, 0, 0.3);">${escapeHtml(originalText.slice(start, end))}</span>`;
                         cursor = end;
                     }
-                    console.debug(cursor, originalText.length, originalText.slice(cursor));
                     if (cursor < originalText.length) {
                         html += escapeHtml(originalText.slice(cursor));
                     }
 
-                    el.displayContainer.innerHTML = html.replace(/\n/g, "<br>");
+                    el.highlighter.innerHTML = html.replace(/\n/g, "<br>");
                 })
                 .catch(error => console.error("Error:", error));
         }
 
         function onInput() {
-            analyzeText();
+            if (!analysisTimeout) {
+                analyzeText();
+            }
+            clearTimeout(analysisTimeout);
+            analysisTimeout = setTimeout(() => {
+                analyzeText();
+            }, 400);
         }
 
         function onSliderChange() {
@@ -254,9 +306,17 @@
         }
 
         function setup() {
-            el.displayContainer = document.querySelector('.container:not([contenteditable])');
-            el.editableContainer = document.querySelector('.container[contenteditable="true"]');
-            el.editableContainer.addEventListener('input', onInput);
+            el.highlighter = document.getElementById('highlighter');
+            el.editor = document.getElementById('editor');
+            el.editor.addEventListener('input', onInput);
+            el.editor.addEventListener('paste', e => {
+                e.preventDefault();
+                const text = (e.originalEvent || e).clipboardData.getData('text/plain');
+                document.execCommand('insertText', false, text);
+            });
+            el.editor.addEventListener('scroll', () => {
+                el.highlighter.scrollTop = el.editor.scrollTop;
+            });
             el.phraseSlider = document.getElementById('phrase-level');
             el.phraseSlider.addEventListener('input', onSliderChange);
             el.singleSlider = document.getElementById('single-level');
