@@ -212,7 +212,7 @@
             if (singleValue > 0)
                 modes.push({ type: 'single', level: singleValue });
             try {
-                const response = await fetch('/api/v1/redact', {
+                const response = await fetch(REDACT_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
