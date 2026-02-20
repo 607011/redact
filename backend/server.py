@@ -2,12 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import spacy
+from spacy.language import Language
 from enum import Enum
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response, JSONResponse
 from contextlib import asynccontextmanager
 from pydantic import BaseModel, Field
 
+DEFAULT_MODEL = "de_core_news_md"
+DEFAULT_REDACT_CHAR = "█"
 
 class RedactionMode(str, Enum):
     PHRASE = "phrase"
@@ -35,8 +38,22 @@ class RedactionResponse(BaseModel):
     model_used: str
 
 
-# Global spaCy model
-nlp = None
+# Cache for loaded models
+_models: dict[str, Language] = {}
+
+
+def _get_model(model_name: str) -> Language:
+    """Lazy-load a spaCy model, caching it for future use."""
+    if model_name not in _models:
+        try:
+            _models[model_name] = spacy.load(
+                model_name, disable=["lemmatizer", "attribute_ruler"]
+            )
+        except OSError:
+            raise ValueError(
+                f"Model '{model_name}' not found. Tell the admin to download it first."
+            )
+    return _models[model_name]
 
 
 def redact_segment(
@@ -62,9 +79,10 @@ def get_token_importance(token) -> float:
         return 0.0
 
 
-def redact(text: str, redaction_modes: list[ModeConfig]) -> str:
+def redact(text: str, redaction_modes: list[ModeConfig], model_name: str, redact_char: str = "█") -> str:
     """Apply redaction to text based on specified modes and level."""
     threshold = {mode.type: (100 - mode.level) / 100.0 for mode in redaction_modes}
+    nlp = _get_model(model_name)
     doc = nlp(text)
     result = list(text)
 
@@ -77,7 +95,7 @@ def redact(text: str, redaction_modes: list[ModeConfig]) -> str:
             importance = sum(get_token_importance(tok) for tok in tokens) / len(tokens)
             if importance < threshold[RedactionMode.PHRASE]:
                 continue
-            redact_segment(result, chunk.start_char, chunk.end_char)
+            redact_segment(result, chunk.start_char, chunk.end_char, redact_char)
 
     if any(mode.type == RedactionMode.SINGLE for mode in redaction_modes):
         # redact individual tokens based on their importance and the specified level
@@ -85,13 +103,15 @@ def redact(text: str, redaction_modes: list[ModeConfig]) -> str:
             importance = get_token_importance(token)
             if importance < threshold[RedactionMode.SINGLE]:
                 continue
-            redact_segment(result, token.idx, token.idx + len(token), "▒")
+            redact_segment(result, token.idx, token.idx + len(token), redact_char)
 
     return "".join(result)
 
-def analyze(text: str, redaction_modes: list[ModeConfig]) -> str:
+
+def analyze(text: str, redaction_modes: list[ModeConfig], model_name: str) -> str:
     """Analyze importance of phrases and words based on specified modes and level."""
     threshold = {mode.type: (100 - mode.level) / 100.0 for mode in redaction_modes}
+    nlp = _get_model(model_name)
     doc = nlp(text)
 
     result = []
@@ -105,7 +125,7 @@ def analyze(text: str, redaction_modes: list[ModeConfig]) -> str:
             importance = sum(get_token_importance(tok) for tok in tokens) / len(tokens)
             if importance < threshold[RedactionMode.PHRASE]:
                 continue
-            result.append([chunk.start_char, chunk.end_char, importance, 'P'])
+            result.append([chunk.start_char, chunk.end_char, importance])
 
     if any(mode.type == RedactionMode.SINGLE for mode in redaction_modes):
         # redact individual tokens based on their importance and the specified level
@@ -113,56 +133,50 @@ def analyze(text: str, redaction_modes: list[ModeConfig]) -> str:
             importance = get_token_importance(token)
             if importance < threshold[RedactionMode.SINGLE]:
                 continue
-            result.append([token.idx, token.idx + len(token), importance, 'S'])
+            result.append([token.idx, token.idx + len(token), importance])
 
-    if result:
-        # Sort by start index, then by importance descending.
-        # This ensures that for overlapping segments, we process the one starting first.
-        # If they start at the same index, the more important one comes first.
-        result.sort(key=lambda x: (x[0], -x[2]))
+    if not result:
+        return []
 
-        # Remove overlapping segments, keeping the one with higher importance.
-        # If a less important segment is fully contained within a more important one, it's removed.
-        merged = []
-        if result:
-            merged.append(result[0])
-            for current in result[1:]:
-                last = merged[-1]
-                # Check for overlap
-                if current[0] < last[1]:
-                    # Overlap exists.
-                    # If current is fully contained in last, skip it.
-                    if current[1] <= last[1]:
-                        continue
-                    # Partial overlap. Decide which to keep.
-                    # If last is more important, adjust its end if current extends it.
-                    if last[2] >= current[2]:
-                        last[1] = max(last[1], current[1])
-                    else:
-                        # Current is more important, replace last.
-                        # This case is less likely with the current sorting, but good for robustness.
-                        merged[-1] = current
-                else:
-                    # No overlap, add current segment.
-                    merged.append(current)
-        
-        result = merged
-        # Final sort by start index
-        result.sort(key=lambda x: x[0])
-
+    # Sort by start index, then by importance descending.
+    # This ensures that for overlapping segments, we process the one starting first.
+    # If they start at the same index, the more important one comes first.
+    result.sort(key=lambda x: (x[0], -x[2]))
+    # Remove overlapping segments, keeping the one with higher importance.
+    # If a less important segment is fully contained within a more important one, it's removed.
+    merged = [result[0]]
+    for current in result[1:]:
+        last = merged[-1]
+        # Check for overlap
+        if current[0] < last[1]:
+            # Overlap exists.
+            # If current is fully contained in last, skip it.
+            if current[1] <= last[1]:
+                continue
+            # Partial overlap. Decide which to keep.
+            # If last is more important, adjust its end if current extends it.
+            if last[2] >= current[2]:
+                last[1] = max(last[1], current[1])
+            else:
+                # Current is more important, replace last.
+                # This case is less likely with the current sorting, but good for robustness.
+                merged[-1] = current
+        else:
+            # No overlap, add current segment.
+            merged.append(current)
+    result = merged
+    # Final sort by start index
+    result.sort(key=lambda x: x[0])
     return result
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Load spaCy model on server startup."""
-    global nlp
-    print("Loading spaCy model...")
-    nlp = spacy.load("de_core_news_md", disable=["lemmatizer", "attribute_ruler"])
-    print("Model loaded successfully!")
+    global _models
+    _models = {}
     yield
     # Cleanup
-    nlp = None
+    _models = None
 
 
 # Initialize FastAPI app
@@ -184,9 +198,9 @@ async def root():
             "POST /analyze": "Analyze text importance without redaction",
             "POST /redact": "Redact text with specified parameters",
             "GET /health": "Check API health status",
-            "GET /models": "List available spaCy models",
         },
     }
+
 
 @app.options("/health")
 async def health_options():
@@ -199,27 +213,12 @@ async def health_options():
         }
     )
 
+
 @app.get("/health")
 async def health():
     """Health check endpoint."""
-    if nlp is None:
-        raise HTTPException(status_code=503, detail="Model not loaded")
-    return {"status": "healthy", "model_loaded": True}
+    return {"status": "healthy", "models": spacy.util.get_installed_models()}
 
-@app.options("/models")
-async def models_options():
-    """Handle CORS preflight requests."""
-    return Response(
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
-        }
-    )
-
-@app.get("/models")
-async def get_models():
-    return {"models": ["de_core_news_md"]}
 
 @app.options("/redact")
 async def redact_options():
@@ -232,24 +231,17 @@ async def redact_options():
         }
     )
 
+
 @app.post("/analyze")
 async def analyze_text(request: RedactionRequest):
     """
     Analyze importance of phrases and words in the provided text.
-
-    - **text**: The text to analyze
-    - **level**: Analysis aggressiveness (0-100, higher = more analysis)
-    - **mode**: Analysis strategy (phrase, single, or both)
-    - **model**: spaCy model to use (default: de_core_news_md)
     """
-    if nlp is None:
-        raise HTTPException(status_code=503, detail="Model not loaded")
-
     if not request.text:
         raise HTTPException(status_code=400, detail="Text must not be empty")
 
     try:
-        analysis_result = analyze(request.text, request.modes)
+        analysis_result = analyze(request.text, request.modes, request.model)
         return JSONResponse(
             content={
                 "analysis": analysis_result,
@@ -272,27 +264,21 @@ async def analyze_text(request: RedactionRequest):
 async def redact_text(request: RedactionRequest):
     """
     Redact sensitive information from the provided text.
-
-    - **text**: The text to redact
-    - **level**: Redaction aggressiveness (0-100, higher = more redaction)
-    - **mode**: Redaction strategy (phrase, single, or both)
-    - **model**: spaCy model to use (default: de_core_news_md)
     """
-    if nlp is None:
-        raise HTTPException(status_code=503, detail="Model not loaded")
-
     if not request.text:
         raise HTTPException(status_code=400, detail="Text must not be empty")
 
+    model = request.model if hasattr(request, 'model') else DEFAULT_MODEL
+    redact_char = request.redact_char if hasattr(request, 'redact_char') else DEFAULT_REDACT_CHAR
     try:
-        redacted_text = redact(request.text, request.modes)
+        redacted_text = redact(request.text, request.modes, model, redact_char)
         return JSONResponse(
             content={
                 "redacted_text": redacted_text,
                 "modes": [
                     {"type": mode.type, "level": mode.level} for mode in request.modes
                 ],
-                "model_used": request.model,
+                "model_used": model,
             },
             headers={
                 "Access-Control-Allow-Origin": "*",
@@ -307,4 +293,5 @@ async def redact_text(request: RedactionRequest):
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=13370)

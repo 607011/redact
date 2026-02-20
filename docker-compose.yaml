@@ -1,6 +1,9 @@
 services:
   webservice:
-    build: backend
+    build:
+      context: backend
+      dockerfile: Dockerfile
+    container_name: redact-backend-dev
     ports:
       - "13370:13370"
     restart: always

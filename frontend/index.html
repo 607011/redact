@@ -4,15 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="A tool to analyze and redact text by highlighting important words and phrases.">
-    <meta name="keywords" content="redact, text analysis, privacy, redaction tool, text highlighter">
-    <meta name="author" content="Redac't">
+    <meta name="description" content="A tool to analyze █████████ text by highlighting important words and phrases.">
+    <meta name="keywords" content="redact, text analysis, privacy, redaction tool, ██████████, text highlighter">
+    <meta name="author" content="██████ ███">
     <meta name="robots" content="index, follow">
-    <title>Redac’t</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='0' y='2' width='20' height='7'/><rect x='22' y='2' width='10' height='7'/><rect x='0' y='11' width='7' height='7'/><rect x='9' y='11' width='17' height='7'/><rect x='0' y='20' width='10' height='7'/><rect x='12' y='20' width='17' height='7'/></svg>">
+    <title>Redac&apos;t</title>
     <style>
         @font-face {
             font-family: 'Source Sans Pro';
-            src: url('static/fonts/SourceSansPro-Regular.ttf') format('truetype');
+            src: url('/static/fonts/SourceSansPro-Regular.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
             font-display: swap;
@@ -20,7 +21,7 @@
 
         @font-face {
             font-family: 'Source Sans Pro';
-            src: url('static/fonts/SourceSansPro-Bold.ttf') format('truetype');
+            src: url('/static/fonts/SourceSansPro-Bold.ttf') format('truetype');
             font-weight: bold;
             font-style: normal;
             font-display: swap;
@@ -28,7 +29,7 @@
 
         @font-face {
             font-family: 'Source Code Pro';
-            src: url('static/fonts/SourceCodePro-Regular.ttf') format('truetype');
+            src: url('/static/fonts/SourceCodePro-Regular.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
             font-display: swap;
@@ -36,7 +37,7 @@
 
         @font-face {
             font-family: 'Source Code Pro';
-            src: url('static/fonts/SourceCodePro-Bold.ttf') format('truetype');
+            src: url('/static/fonts/SourceCodePro-Bold.ttf') format('truetype');
             font-weight: bold;
             font-style: normal;
             font-display: swap;
@@ -46,6 +47,62 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #222;
+                color: #eee;
+            }
+
+            header {
+                background-color: #0D1A2b;
+                color: #eee;
+            }
+
+            footer {
+                background-color: #0D1A2b;
+                color: #eee;
+            }
+
+            #editor {
+                color: #eee;
+                caret-color: #eee;
+            }
+
+            #editor-wrapper {
+                background-color: #070f18;
+            }
+
+            #highlighter span {
+                opacity: 0.7;
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            body {
+                background-color: white;
+                color: #111;
+            }
+
+            header {
+                background-color: #14315b;
+                color: white;
+            }
+
+            footer {
+                background-color: #14315b;
+                color: white;
+            }
+
+            #editor {
+                color: black;
+                caret-color: black;
+            }
+
+            #editor-wrapper {
+                background-color: white;
+            }
         }
 
         body {
@@ -61,13 +118,14 @@
         }
 
         header {
-            background-color: #14315B;
-            color: white;
             padding: 10px;
             text-align: center;
             display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
             align-items: center;
             justify-content: space-between;
+            gap: 10px;
         }
 
         main {
@@ -82,7 +140,6 @@
             flex: 1;
             height: 100%;
             overflow-y: auto;
-            background-color: white;
         }
 
         .container {
@@ -103,11 +160,7 @@
 
         #editor {
             z-index: 2;
-            color: black;
             background: transparent;
-            /* Wichtig: Man sieht den Highlighter durch */
-            caret-color: black;
-            /* Cursor sichtbar halten */
             outline: none;
         }
 
@@ -127,28 +180,87 @@
         .controls {
             display: flex;
             flex-direction: row;
+            flex-wrap: wrap;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
+        }
+
+        .controls>div {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 5px;
         }
 
         footer {
             font-size: smaller;
-            background-color: #14315B;
-            color: white;
             padding: 10px;
             text-align: center;
+        }
+
+        select {
+            padding: 5px;
+        }
+
+        .loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loader-dots {
+            display: flex;
+            gap: 10px;
+        }
+
+        .loader-dots span {
+            width: 16px;
+            height: 16px;
+            background: #64a4ff;
+            border-radius: 50%;
+            animation: bounce 0.3s ease-in-out infinite alternate;
+        }
+
+        .loader-dots span:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .loader-dots span:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        @keyframes bounce {
+            from {
+                transform: translateY(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateY(-22px);
+                opacity: 0.4;
+            }
         }
     </style>
 </head>
 
 <body>
+    <div class="loader-overlay">
+        <div class="loader-dots">
+            <span></span><span></span><span></span>
+        </div>
+    </div>
     <header>
-        <h1>Redac’t</h1>
+        <h1>Redac&apos;t</h1>
+        <div><span id="health-indicator"></span></div>
         <div class="controls">
-            <label for="single-level">Word</label>
-            <input type="range" id="single-level" min="0" max="4" step="1" list="steplist">
-            <label for="phrase-level">Phrase</label>
-            <input type="range" id="phrase-level" min="0" max="4" step="1" list="steplist">
+            <select id="model-select" title="Select model">
+                <option value="">Loading models &hellip;</option>
+            </select>
             <datalist id="steplist">
                 <option value="0"></option>
                 <option value="40"></option>
@@ -156,6 +268,14 @@
                 <option value="90"></option>
                 <option value="100"></option>
             </datalist>
+            <div>
+                <label for="single-level">Word</label>
+                <input type="range" id="single-level" min="0" max="4" step="1" list="steplist">
+            </div>
+            <div>
+                <label for="phrase-level">Phrase</label>
+                <input type="range" id="phrase-level" min="0" max="4" step="1" list="steplist">
+            </div>
             <button id="download-redacted" title="Download Redacted Text"
                 style="background: none; border: none; cursor: pointer; color: white; vertical-align: middle; padding: 0 10px;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -176,7 +296,7 @@
     </main>
 
     <footer>
-        <p>&copy; 2026 Redac’t. All rights reserved.</p>
+        <p>&copy; 2026 ███████. All rights reserved.</p>
     </footer>
 </body>
 
@@ -184,7 +304,8 @@
     (function (window) {
         // container for DOM elements of interest
         const el = {};
-        const API_VERSION = "v1";
+        const API_VERSION = 'v1';
+        const HEALTH_ENDPOINT = `/api/${API_VERSION}/health`;
         const ANALYZE_ENDPOINT = `/api/${API_VERSION}/analyze`;
         const REDACT_ENDPOINT = `/api/${API_VERSION}/redact`;
 
@@ -212,12 +333,14 @@
             if (singleValue > 0)
                 modes.push({ type: 'single', level: singleValue });
             try {
+                showLoader();
                 const response = await fetch(REDACT_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         text: text,
-                        modes: modes
+                        modes: modes,
+                        model: el.modelSelect.value,
                     })
                 });
                 const data = await response.json();
@@ -231,15 +354,16 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-
             }
             catch (error) {
-                console.error("Download failed:", error);
-                alert("Fehler beim Erstellen der geschwärzten Datei.");
+                console.error('Download failed:', error);
+            }
+            finally {
+                hideLoader();
             }
         }
 
-        function analyzeText() {
+        async function analyzeText() {
             if (!el.editor || el.editor.innerText.length === 0)
                 return;
             const modes = [];
@@ -261,34 +385,40 @@
                 });
             }
             const originalText = el.editor.innerText.replace(/\r\n/g, '\n');
-            fetch(ANALYZE_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    text: originalText,
-                    modes: modes
-                })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    let html = "";
-                    let cursor = 0;
-                    for (const [start, end, importance] of data.analysis) {
-                        if (start > cursor) {
-                            html += escapeHtml(originalText.slice(cursor, start));
-                        }
-                        const r = Math.round(255 * importance);
-                        const g = Math.round(255 * (1 - importance));
-                        html += `<span style="background-color: rgba(${r}, ${g}, 0, 0.3);">${escapeHtml(originalText.slice(start, end))}</span>`;
-                        cursor = end;
+            try {
+                showLoader();
+                const response = await fetch(ANALYZE_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: originalText,
+                        modes: modes,
+                        model: el.modelSelect.value,
+                    })
+                });
+                const data = await response.json();
+                let html = '';
+                let cursor = 0;
+                for (const [start, end, importance] of data.analysis) {
+                    if (start > cursor) {
+                        html += escapeHtml(originalText.slice(cursor, start));
                     }
-                    if (cursor < originalText.length) {
-                        html += escapeHtml(originalText.slice(cursor));
-                    }
+                    const hue = (1 - importance) * 120;
+                    html += `<span style="background-color: hsla(${hue.toFixed(0)}, 80%, 50%, 0.8);">${escapeHtml(originalText.slice(start, end))}</span>`;
+                    cursor = end;
+                }
+                if (cursor < originalText.length) {
+                    html += escapeHtml(originalText.slice(cursor));
+                }
 
-                    el.highlighter.innerHTML = html.replace(/\n/g, "<br>");
-                })
-                .catch(error => console.error("Error:", error));
+                el.highlighter.innerHTML = html.replace(/\n/g, '<br>');
+            }
+            catch (error) {
+                console.error('Analysis failed:', error);
+            }
+            finally {
+                hideLoader();
+            }
         }
 
         function onInput() {
@@ -297,17 +427,67 @@
             }
             clearTimeout(analysisTimeout);
             analysisTimeout = setTimeout(() => {
+                localStorage.setItem('editorContent', el.editor.innerText);
                 analyzeText();
             }, 400);
         }
 
         function onSliderChange() {
+            localStorage.setItem('phraseLevel', el.phraseSlider.value);
+            localStorage.setItem('singleLevel', el.singleSlider.value);
             analyzeText();
         }
 
+        function onModelChange() {
+            localStorage.setItem('selectedModel', el.modelSelect.value);
+            analyzeText();
+        }
+
+        function showLoader() {
+            el.loaderOverlay.style.display = 'flex';
+        }
+
+        function hideLoader() {
+            el.loaderOverlay.style.display = 'none';
+        }
+
+        async function checkHealth() {
+            try {
+                const response = await fetch(HEALTH_ENDPOINT);
+                const data = await response.json();
+                if (data.status !== 'healthy') {
+                    console.error('Backend not reachable. Please try again later.');
+                    el.modelSelect.innerHTML = '<option value="">Backend not reachable</option>';
+                    return;
+                }
+                el.modelSelect.innerHTML = '';
+                data.models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    el.modelSelect.appendChild(option);
+                });
+                const savedModel = localStorage.getItem('selectedModel');
+                if (savedModel && data.models.includes(savedModel)) {
+                    el.modelSelect.value = savedModel;
+                    analyzeText();
+                }
+            }
+            catch (error) {
+                console.error('Health check failed:', error);
+                el.modelSelect.innerHTML = '<option value="">Backend not reachable</option>';
+            }
+            finally {
+                hideLoader();
+            }
+        }
+
         function setup() {
+            el.modelSelect = document.getElementById('model-select');
+            el.modelSelect.addEventListener('change', onModelChange);
             el.highlighter = document.getElementById('highlighter');
             el.editor = document.getElementById('editor');
+            el.editor.innerText = localStorage.getItem('editorContent') || '';
             el.editor.addEventListener('input', onInput);
             el.editor.addEventListener('paste', e => {
                 e.preventDefault();
@@ -319,10 +499,18 @@
             });
             el.phraseSlider = document.getElementById('phrase-level');
             el.phraseSlider.addEventListener('input', onSliderChange);
+            el.phraseSlider.value = localStorage.getItem('phraseLevel') || el.phraseSlider.value;
             el.singleSlider = document.getElementById('single-level');
             el.singleSlider.addEventListener('input', onSliderChange);
+            el.singleSlider.value = localStorage.getItem('singleLevel') || el.singleSlider.value;
+            el.loaderOverlay = document.querySelector('.loader-overlay');
             document.getElementById('download-redacted').addEventListener('click', downloadRedactedText);
-            analyzeText();
+            checkHealth().then(() => {
+                analyzeText();
+            })
+                .catch(error => {
+                    console.error('Setup failed:', error);
+                });
         }
 
         document.addEventListener('DOMContentLoaded', setup);
