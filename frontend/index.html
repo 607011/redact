@@ -8,7 +8,8 @@
     <meta name="keywords" content="redact, text analysis, privacy, redaction tool, ██████████, text highlighter">
     <meta name="author" content="██████ ███">
     <meta name="robots" content="index, follow">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='0' y='2' width='20' height='7'/><rect x='22' y='2' width='10' height='7'/><rect x='0' y='11' width='7' height='7'/><rect x='9' y='11' width='17' height='7'/><rect x='0' y='20' width='10' height='7'/><rect x='12' y='20' width='17' height='7'/></svg>">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='0' y='2' width='20' height='7'/><rect x='22' y='2' width='10' height='7'/><rect x='0' y='11' width='7' height='7'/><rect x='9' y='11' width='17' height='7'/><rect x='0' y='20' width='10' height='7'/><rect x='12' y='20' width='17' height='7'/></svg>">
     <title>Redac&apos;t</title>
     <style>
         @font-face {
@@ -371,6 +372,7 @@
         const REDACT_ENDPOINT = `/api/${API_VERSION}/redact`;
 
         let analysisTimeout;
+        const analysisCache = new Map();
 
         function escapeHtml(text) {
             return text
@@ -446,18 +448,26 @@
                 });
             }
             const originalText = el.editor.innerText.replace(/\r\n/g, '\n');
+            const cacheKey = JSON.stringify({ modes, model: el.modelSelect.value });
             try {
                 showLoader();
-                const response = await fetch(ANALYZE_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        text: originalText,
-                        modes: modes,
-                        model: el.modelSelect.value,
-                    })
-                });
-                const data = await response.json();
+                let data;
+                if (analysisCache.has(cacheKey)) {
+                    data = analysisCache.get(cacheKey);
+                }
+                else {
+                    const response = await fetch(ANALYZE_ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            text: originalText,
+                            modes: modes,
+                            model: el.modelSelect.value,
+                        })
+                    });
+                    data = await response.json();
+                    analysisCache.set(cacheKey, data);
+                }
                 let html = '';
                 let cursor = 0;
                 for (const [start, end, importance] of data.analysis) {
@@ -483,6 +493,7 @@
         }
 
         function onInput() {
+            analysisCache.clear();
             if (!analysisTimeout) {
                 analyzeText();
             }
