@@ -81,7 +81,12 @@ def get_token_importance(token) -> float:
         return 0.0
 
 
-def redact(text: str, redaction_modes: list[ModeConfig], model_name: str, redact_char: str = "█") -> str:
+def redact(
+    text: str,
+    redaction_modes: list[ModeConfig],
+    model_name: str,
+    redact_char: str = "█",
+) -> str:
     """Apply redaction to text based on specified modes and level."""
     threshold = {mode.type: (100 - mode.level) / 100.0 for mode in redaction_modes}
     nlp = _get_model(model_name)
@@ -306,8 +311,10 @@ async def redact_text(request: RedactionRequest):
     if not request.text:
         raise HTTPException(status_code=400, detail="Text must not be empty")
 
-    model = request.model if hasattr(request, 'model') else DEFAULT_MODEL
-    redact_char = request.redact_char if hasattr(request, 'redact_char') else DEFAULT_REDACT_CHAR
+    model = request.model if hasattr(request, "model") else DEFAULT_MODEL
+    redact_char = (
+        request.redact_char if hasattr(request, "redact_char") else DEFAULT_REDACT_CHAR
+    )
     try:
         redacted_text = redact(request.text, request.modes, model, redact_char)
         return JSONResponse(
