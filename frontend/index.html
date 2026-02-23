@@ -368,6 +368,7 @@
         const el = {};
         const API_VERSION = 'v1';
         const HEALTH_ENDPOINT = `/api/${API_VERSION}/health`;
+        const LANGUAGE_ENDPOINT = `/api/${API_VERSION}/language`;
         const ANALYZE_ENDPOINT = `/api/${API_VERSION}/analyze`;
         const REDACT_ENDPOINT = `/api/${API_VERSION}/redact`;
 
@@ -523,6 +524,24 @@
             el.loaderOverlay.style.display = 'none';
         }
 
+        async function getLanguage() {
+            const originalText = el.editor.innerText.replace(/\r\n/g, '\n');
+            try {
+                const response = await fetch(LANGUAGE_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: originalText })
+                });
+                const data = await response.json();
+                console.debug('Detected language:', data.language);
+                return data.language;
+            }
+            catch (error) {
+                console.error('Language detection failed:', error);
+                return null;
+            }
+        }
+
         async function checkHealth() {
             try {
                 const response = await fetch(HEALTH_ENDPOINT);
@@ -585,9 +604,7 @@
                 e.preventDefault();
                 const text = (e.originalEvent || e).clipboardData.getData('text/plain');
                 document.execCommand('insertText', false, text);
-            });
-            el.editor.addEventListener('scroll', () => {
-                el.highlighter.scrollTop = el.editor.scrollTop;
+                getLanguage();
             });
             el.phraseSlider = document.getElementById('phrase-level');
             el.phraseSlider.addEventListener('input', onSliderChange);

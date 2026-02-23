@@ -3,6 +3,7 @@
 
 import spacy
 from spacy.language import Language
+from langdetect import detect
 from enum import Enum
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response, JSONResponse
@@ -11,6 +12,7 @@ from pydantic import BaseModel, Field
 
 DEFAULT_MODEL = "de_core_news_md"
 DEFAULT_REDACT_CHAR = "█"
+
 
 class RedactionMode(str, Enum):
     PHRASE = "phrase"
@@ -197,9 +199,45 @@ async def root():
         "endpoints": {
             "POST /analyze": "Analyze text importance without redaction",
             "POST /redact": "Redact text with specified parameters",
+            "GET /language": "Detect language of the input text",
             "GET /health": "Check API health status",
         },
     }
+
+
+@app.options("/language")
+async def language_options():
+    """Handle CORS preflight requests for language detection."""
+    return Response(
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+        }
+    )
+
+
+@app.post("/language")
+async def detect_language(request: RedactionRequest):
+    """Detect the language of the input text."""
+    if not request.text:
+        raise HTTPException(status_code=400, detail="Text query parameter is required")
+    try:
+        language = detect(request.text)
+        return JSONResponse(
+            content={
+                "language": language,
+            },
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type",
+            },
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Language detection failed: {str(e)}"
+        )
 
 
 @app.options("/health")
