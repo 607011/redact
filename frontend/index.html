@@ -521,11 +521,19 @@
                     el.modelSelect.innerHTML = '<option value="">Backend not reachable</option>';
                     return;
                 }
+                const AVAILABLE_LANGS = ['en', 'fr', 'de'];
+                let userLang = (navigator.language || navigator.userLanguage || 'en').split('-')[0];
+                if (!AVAILABLE_LANGS.includes(userLang)) {
+                    userLang = 'en';
+                }
                 el.modelSelect.innerHTML = '';
                 data.models.forEach(model => {
                     const option = document.createElement('option');
                     option.value = model;
                     option.textContent = model;
+                    if (model.startsWith(userLang)) {
+                        option.selected = true;
+                    }
                     el.modelSelect.appendChild(option);
                 });
                 const savedModel = localStorage.getItem('selectedModel');
