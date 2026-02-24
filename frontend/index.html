@@ -71,6 +71,10 @@
                 caret-color: #eee;
             }
 
+            #editor:empty::before {
+                color: #555;
+            }
+
             #editor-wrapper {
                 background-color: #070f18;
             }
@@ -105,6 +109,10 @@
             #editor {
                 color: black;
                 caret-color: black;
+            }
+
+            #editor:empty::before {
+                color: #aaa;
             }
 
             #editor-wrapper {
@@ -183,11 +191,17 @@
             overflow: hidden;
         }
 
+        #editor:empty::before {
+            content: attr(data-placeholder);
+            pointer-events: none;
+        }
+
         #highlighter {
             z-index: 1;
             color: transparent;
             user-select: none;
             pointer-events: none;
+            overflow: hidden;
         }
 
         #highlighter span {
@@ -347,12 +361,12 @@
     <main>
         <div id="editor-wrapper">
             <div id="highlighter" class="container" spellcheck="false"></div>
-            <div id="editor" class="container" contenteditable="true" spellcheck="false"></div>
+            <div id="editor" class="container" contenteditable="true" spellcheck="false" data-placeholder="Paste or type your text here to highlight words by importance. Caution: pasting replaces existing content!"></div>
         </div>
     </main>
 
     <footer>
-        <div>least important
+        <legend>least important
             <svg xmlns="http://www.w3.org/2000/svg" width="100" height="1em" viewBox="0 0 100 1"
                 preserveAspectRatio="none">
                 <defs>
@@ -365,7 +379,7 @@
                 <rect width="100" height="1" fill="url(#gr)" />
             </svg>
             most important
-        </div>
+        </legend>
         <div>&copy; 2026 ███████. All rights reserved.</div>
     </footer>
 </body>
