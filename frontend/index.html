@@ -405,9 +405,12 @@
                 .replace(/"/g, '&quot;');
         }
 
+        function getEditorText() {
+            return el.editor.innerText.replace(/\r\n|\r/g, '\n').replace(/\n$/, '');
+        }
+
         async function downloadRedactedText() {
-            const editor = document.getElementById('editor');
-            const text = editor.innerText;
+            const text = getEditorText();
             if (!text.trim())
                 return;
             const datalistOptions = Array.from(document.querySelectorAll('#steplist option')).map(opt => parseInt(opt.value));
@@ -450,7 +453,7 @@
         }
 
         async function analyzeText() {
-            if (!el.editor || el.editor.innerText.length === 0)
+            if (!el.editor || getEditorText().length === 0)
                 return;
             const modes = [];
             const datalistOptions = Array.from(document.querySelectorAll('#steplist option')).map(opt => parseInt(opt.value));
@@ -470,7 +473,7 @@
                     level: singleValue,
                 });
             }
-            const originalText = el.editor.innerText.replace(/\r\n/g, '\n');
+            const originalText = getEditorText();
             const cacheKey = JSON.stringify({ modes, model: el.modelSelect.value });
             try {
                 showLoader();
@@ -516,13 +519,19 @@
         }
 
         function onInput() {
+            const text = getEditorText();
+            if (text.length === 0) {
+                el.highlighter.innerHTML = '';
+                localStorage.removeItem('editorContent');
+                return;
+            }
             analysisCache.clear();
             if (!analysisTimeout) {
                 analyzeText();
             }
             clearTimeout(analysisTimeout);
             analysisTimeout = setTimeout(() => {
-                localStorage.setItem('editorContent', el.editor.innerText);
+                localStorage.setItem('editorContent', getEditorText());
                 analyzeText();
             }, 400);
         }
@@ -546,8 +555,8 @@
             el.loaderOverlay.style.display = 'none';
         }
 
-        async function getLanguage() {
-            const originalText = el.editor.innerText.replace(/\r\n/g, '\n');
+        async function guessLanguage() {
+            const originalText = getEditorText();
             try {
                 const response = await fetch(LANGUAGE_ENDPOINT, {
                     method: 'POST',
@@ -555,7 +564,6 @@
                     body: JSON.stringify({ text: originalText })
                 });
                 const data = await response.json();
-                console.debug('Detected language:', data.language);
                 return data.language;
             }
             catch (error) {
@@ -619,13 +627,22 @@
             el.modelSelect.addEventListener('change', onModelChange);
             el.highlighter = document.getElementById('highlighter');
             el.editor = document.getElementById('editor');
-            el.editor.innerText = localStorage.getItem('editorContent') || '';
+            el.editor.textContent = localStorage.getItem('editorContent') || '';
             el.editor.addEventListener('input', onInput);
             el.editor.addEventListener('paste', e => {
                 e.preventDefault();
-                const text = (e.originalEvent || e).clipboardData.getData('text/plain');
-                document.execCommand('insertText', false, text);
-                getLanguage();
+                const text = (e.originalEvent || e).clipboardData.getData('text/plain').replace(/\r\n|\r/g, '\n');
+                el.editor.textContent = text;
+                onInput();
+                guessLanguage().then(lang => {
+                    if (lang) {
+                        const modelOption = Array.from(el.modelSelect.options).find(opt => opt.value.startsWith(lang));
+                        if (modelOption && localStorage.getItem('selectedModel') !== modelOption.value) {
+                            el.modelSelect.value = modelOption.value;
+                            onModelChange();
+                        }
+                    }
+                });
             });
             el.phraseSlider = document.getElementById('phrase-level');
             el.phraseSlider.addEventListener('input', onSliderChange);
