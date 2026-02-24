@@ -2,7 +2,7 @@
 
 **Linguistically proven redactor for plain text files with a web frontend plus a Python backend using the NLP framework spacy.io**
 
-<img width="1043" height="441" alt="grafik" src="https://github.com/user-attachments/assets/37f0b67f-8771-484e-8093-05e05d914dff" />
+<img width="909" height="558" alt="grafik" src="https://github.com/user-attachments/assets/91d3cf0e-2c0a-488d-a16d-ffebf513e6c4" />
 
 ## Prerequisites
 
