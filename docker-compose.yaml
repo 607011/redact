@@ -8,6 +8,21 @@ services:
     restart: always
     networks:
       - backend
+
+  redact-frontend-prod:
+    profiles: ["prod"]
+    container_name: redact-frontend-prod
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NGINX_CONFIG_PATH: ./prod
+    ports:
+      - "127.0.0.1:8880:80"
+    restart: always
+    networks:
+      - backend
+
   redact-frontend-dev:
     profiles: ["dev"]
     container_name: redact-frontend-dev
