@@ -653,6 +653,7 @@
             el.editor.addEventListener('input', onInput);
             el.editor.addEventListener('paste', e => {
                 e.preventDefault();
+                el.highlighter.innerHTML = '';
                 const text = (e.originalEvent || e).clipboardData.getData('text/plain').replace(/\r\n|\r/g, '\n');
                 el.editor.textContent = text;
                 onInput();
