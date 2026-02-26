@@ -402,6 +402,21 @@
 
         let analysisTimeout;
         const analysisCache = new Map();
+        const activeRequests = new Map();
+
+        function fetchWithCancel(url, options = {}) {
+            if (activeRequests.has(url)) {
+                activeRequests.get(url).abort();
+            }
+            const controller = new AbortController();
+            activeRequests.set(url, controller);
+            return fetch(url, { ...options, signal: controller.signal })
+                .finally(() => {
+                    if (activeRequests.get(url) === controller) {
+                        activeRequests.delete(url);
+                    }
+                });
+        }
 
         function escapeHtml(text) {
             return text
@@ -429,7 +444,7 @@
                 modes.push({ type: 'single', level: singleValue });
             try {
                 showLoader();
-                const response = await fetch(REDACT_ENDPOINT, {
+                const response = await fetchWithCancel(REDACT_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -488,7 +503,7 @@
                     data = analysisCache.get(cacheKey);
                 }
                 else {
-                    const response = await fetch(ANALYZE_ENDPOINT, {
+                    const response = await fetchWithCancel(ANALYZE_ENDPOINT, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -564,7 +579,7 @@
         async function guessLanguage() {
             const originalText = getEditorText();
             try {
-                const response = await fetch(LANGUAGE_ENDPOINT, {
+                const response = await fetchWithCancel(LANGUAGE_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text: originalText })
@@ -580,7 +595,7 @@
 
         async function checkHealth() {
             try {
-                const response = await fetch(HEALTH_ENDPOINT);
+                const response = await fetchWithCancel(HEALTH_ENDPOINT);
                 const data = await response.json();
                 if (data.status !== 'healthy') {
                     console.error('Backend not reachable. Please try again later.');
