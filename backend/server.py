@@ -49,7 +49,7 @@ def _get_model(model_name: str) -> Language:
     if model_name not in _models:
         try:
             _models[model_name] = spacy.load(
-                model_name, disable=["lemmatizer", "attribute_ruler"]
+                model_name, disable=["lemmatizer"]
             )
         except OSError:
             raise ValueError(
