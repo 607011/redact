@@ -473,8 +473,10 @@
         }
 
         async function analyzeText() {
-            if (!el.editor || getEditorText().length === 0)
+            if (!el.editor || getEditorText().length === 0) {
+                hideLoader();
                 return;
+            }
             const modes = [];
             const datalistOptions = Array.from(document.querySelectorAll('#steplist option')).map(opt => parseInt(opt.value));
             const phraseLevel = parseInt(document.getElementById('phrase-level').value);
@@ -622,8 +624,8 @@
                 const savedModel = localStorage.getItem('selectedModel');
                 if (savedModel && data.models.includes(savedModel)) {
                     el.modelSelect.value = savedModel;
-                    analyzeText();
                 }
+                await analyzeText();
             }
             catch (error) {
                 console.error('Health check failed:', error);
@@ -646,6 +648,8 @@
         }
 
         function setup() {
+            el.loaderOverlay = document.querySelector('.loader-overlay');
+            showLoader();
             el.modelSelect = document.getElementById('model-select');
             el.modelSelect.addEventListener('change', onModelChange);
             el.highlighter = document.getElementById('highlighter');
@@ -674,14 +678,13 @@
             el.singleSlider = document.getElementById('single-level');
             el.singleSlider.addEventListener('input', onSliderChange);
             el.singleSlider.value = localStorage.getItem('singleLevel') || el.singleSlider.value;
-            el.loaderOverlay = document.querySelector('.loader-overlay');
             document.getElementById('download-redacted').addEventListener('click', downloadRedactedText);
             el.colorModeButton = document.getElementById('color-mode');
             el.colorModeButton.addEventListener('click', toggleColorMode);
             checkHealth()
-                .then(analyzeText)
                 .catch(error => {
                     console.error('Setup failed:', error);
+                    hideLoader();
                 });
         }
 
