@@ -3,6 +3,8 @@ FROM nginx:alpine
 WORKDIR /app
 
 COPY frontend/index.html .
+COPY frontend/50x.html .
+COPY frontend/404.html .
 RUN mkdir -p static/fonts
 COPY frontend/static/fonts/*.woff2 ./static/fonts
 

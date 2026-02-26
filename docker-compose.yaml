@@ -3,8 +3,7 @@ services:
     build:
       context: backend
       dockerfile: Dockerfile
-    container_name: redact-backend-dev
-    
+    container_name: redact-backend
     restart: always
     networks:
       - backend
@@ -16,7 +15,7 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
       args:
-        NGINX_CONFIG_PATH: ./prod
+        NGINX_CONFIG: frontend/nginx.conf
     ports:
       - "127.0.0.1:8880:80"
     restart: always
@@ -30,7 +29,7 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
       args:
-        NGINX_CONFIG_PATH: ./dev
+        NGINX_CONFIG: frontend/nginx.conf
     ports:
       - "8880:80"
     restart: always

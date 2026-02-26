@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='0' y='2' width='20' height='7'/><rect x='22' y='2' width='10' height='7'/><rect x='0' y='11' width='7' height='7'/><rect x='9' y='11' width='17' height='7'/><rect x='0' y='20' width='10' height='7'/><rect x='12' y='20' width='17' height='7'/></svg>">
+    <title>Server Error — Redac't</title>
+    <style>
+        @font-face {
+            font-family: 'Source Sans Pro';
+            src: url('/static/fonts/SourceSansPro-Regular.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'Source Sans Pro';
+            src: url('/static/fonts/SourceSansPro-Bold.woff2') format('woff2');
+            font-weight: bold;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #222;
+                color: #eee;
+            }
+
+            header, footer {
+                background-color: #0D1A2b;
+                color: #eee;
+            }
+
+            a {
+                color: #7aadff;
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            body {
+                background-color: white;
+                color: #111;
+            }
+
+            header, footer {
+                background-color: #14315b;
+                color: white;
+            }
+
+            a {
+                color: #14315b;
+            }
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            font-family: 'Source Sans Pro', Arial, sans-serif;
+        }
+
+        header {
+            padding: 10px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .error-code {
+            font-size: 96px;
+            font-weight: bold;
+            line-height: 1;
+            opacity: 0.15;
+        }
+
+        .error-title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .error-body {
+            font-size: 16px;
+            max-width: 480px;
+            line-height: 1.6;
+            opacity: 0.75;
+        }
+
+        a {
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        footer {
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Redac&apos;t</h1>
+    </header>
+
+    <main>
+        <div class="error-code">5xx</div>
+        <p class="error-title">Something went wrong on our end.</p>
+        <p class="error-body">
+            The server encountered an error and could not complete your request.
+            This is likely temporary — please try again in a moment.
+        </p>
+        <a href="/">← Back to Redac't</a>
+    </main>
+
+    <footer>
+        &copy; 2026 ███████. All rights reserved.
+    </footer>
+</body>
+
+</html>
