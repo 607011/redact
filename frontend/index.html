@@ -537,6 +537,15 @@
             }
         }
 
+        function analyzeTextDebounced() {
+            if (analysisTimeout) {
+                clearTimeout(analysisTimeout);
+            }
+            analysisTimeout = setTimeout(() => {
+                analyzeText();
+            }, 400);
+        }
+
         function onInput() {
             const text = getEditorText();
             if (text.length === 0) {
@@ -545,25 +554,19 @@
                 return;
             }
             analysisCache.clear();
-            if (!analysisTimeout) {
-                analyzeText();
-            }
-            clearTimeout(analysisTimeout);
-            analysisTimeout = setTimeout(() => {
-                localStorage.setItem('editorContent', getEditorText());
-                analyzeText();
-            }, 400);
+            localStorage.setItem('editorContent', getEditorText());
+            analyzeTextDebounced();
         }
 
         function onSliderChange() {
             localStorage.setItem('phraseLevel', el.phraseSlider.value);
             localStorage.setItem('singleLevel', el.singleSlider.value);
-            analyzeText();
+            analyzeTextDebounced();
         }
 
         function onModelChange() {
             localStorage.setItem('selectedModel', el.modelSelect.value);
-            analyzeText();
+            analyzeTextDebounced();
         }
 
         function showLoader() {
