@@ -676,9 +676,8 @@
             document.getElementById('download-redacted').addEventListener('click', downloadRedactedText);
             el.colorModeButton = document.getElementById('color-mode');
             el.colorModeButton.addEventListener('click', toggleColorMode);
-            checkHealth().then(() => {
-                analyzeText();
-            })
+            checkHealth()
+                .then(analyzeText)
                 .catch(error => {
                     console.error('Setup failed:', error);
                 });
